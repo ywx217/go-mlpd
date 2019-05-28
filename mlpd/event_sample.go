@@ -1,20 +1,22 @@
 package mlpd
 
-import "errors"
+import (
+	"fmt"
+)
 
 // EventSample alloc event
 type EventSample struct {
 	base *EventBase
 	// if exinfo == TYPE_SAMPLE_HIT
 	// 	[thread: sleb128] thread id as difference from ptr_base
-	thread uint64
+	thread int64
 	// 	[count: uleb128] number of following instruction addresses
 	// 	[ip: sleb128]* instruction pointer as difference from ptr_base
 	ip []int64
 	// [mbt_count: uleb128] number of managed backtrace frames
 	// [method: sleb128]* MonoMethod* as a pointer difference from the last such
 	// 	pointer or the buffer method_base (the first such method can be also indentified by ip, but this is not neccessarily true)
-	method []uint64
+	method []int64
 	// if exinfo == TYPE_SAMPLE_USYM
 	// 	[address: sleb128] symbol address as a difference from ptr_base
 	// 	[size: uleb128] symbol size (may be 0 if unknown)
@@ -54,6 +56,7 @@ type EventSample struct {
 	// 				[value: string] counter value
 	// 		else:
 	// 			[value: uleb128/sleb128/double] counter value, can be sleb128, uleb128 or double (determined by using type)
+	counters []SampleCounter
 }
 
 // SampleCounterDesc sample counter section
@@ -71,6 +74,7 @@ type SampleCounterDesc struct {
 type SampleCounter struct {
 	strValue    *string
 	intValue    *int64
+	uintValue   *uint64
 	doubleValue *float64
 }
 
@@ -81,5 +85,87 @@ func IsEventSample(base *EventBase) bool {
 
 // ReadEventSample reads EventSample from reader
 func ReadEventSample(r *MlpdReader, base *EventBase) (*EventSample, error) {
-	return nil, errors.New("not implemented")
+	exInfo := base.ExtendedInfo()
+	ev := &EventSample{
+		base: base,
+	}
+
+	if exInfo == TypeSampleHit {
+		ev.thread = r.readLEB128()
+		count := r.readULEB128()
+		ip := make([]int64, count)
+		for i := uint64(0); i < count; i++ {
+			ip[i] = r.readLEB128()
+		}
+		ev.ip = ip
+	}
+
+	methodCount := r.readULEB128()
+	method := make([]int64, methodCount)
+	for i := uint64(0); i < methodCount; i++ {
+		method[i] = r.readLEB128()
+	}
+	ev.method = method
+
+	switch exInfo {
+	case TypeSampleUsym:
+		ev.address = r.readLEB128()
+		ev.size = r.readULEB128()
+		ev.name = r.readCString()
+	case TypeSampleUbin:
+		ev.address = r.readLEB128()
+		ev.offset = r.readULEB128()
+		ev.size = r.readULEB128()
+		ev.name = r.readCString()
+	case TypeSampleCountersDesc:
+		descCount := r.readULEB128()
+		desc := make([]SampleCounterDesc, descCount)
+		for i := uint64(0); i < descCount; i++ {
+			d := &desc[i]
+			d.section = r.readULEB128()
+			if d.section == MonoCounterPerfcounters {
+				d.sectionName = r.readCString()
+			}
+			d.name = r.readCString()
+			d.tp = r.readULEB128()
+			d.unit = r.readULEB128()
+			d.variance = r.readULEB128()
+			d.index = r.readULEB128()
+		}
+		ev.sections = desc
+	case TypeSampleCounters:
+		counters := make([]SampleCounter, 0)
+		for {
+			index := r.readULEB128()
+			if index == 0 {
+				break
+			}
+			tp := r.readULEB128()
+			counter := &SampleCounter{}
+			switch tp {
+			case MonoCounterString:
+				firstByte := r.readByte()
+				value := ""
+				if firstByte != 0 {
+					value = r.readCString()
+				}
+				counter.strValue = &value
+			case MonoCounterInt, MonoCounterWord, MonoCounterLong:
+				value := r.readLEB128()
+				counter.intValue = &value
+			case MonoCounterUint, MonoCounterUlong:
+				value := r.readULEB128()
+				counter.uintValue = &value
+			case MonoCounterDouble:
+				value := r.readFloat64()
+				counter.doubleValue = &value
+			default:
+				return nil, fmt.Errorf("invalid type for sample counter: %v", tp)
+			}
+			counters = append(counters, *counter)
+		}
+		ev.counters = counters
+	}
+
+	return ev, nil
 }

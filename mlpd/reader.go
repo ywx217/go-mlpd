@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"time"
 
 	"ekyu.moe/leb128"
@@ -149,6 +150,16 @@ func (r *MlpdReader) readULEB128() uint64 {
 		return num
 	}
 	return 0
+}
+
+func (r *MlpdReader) readFloat32() float32 {
+	bits := r.readUint32()
+	return math.Float32frombits(bits)
+}
+
+func (r *MlpdReader) readFloat64() float64 {
+	bits := r.readUint64()
+	return math.Float64frombits(bits)
 }
 
 // ReadHeader reads file header
