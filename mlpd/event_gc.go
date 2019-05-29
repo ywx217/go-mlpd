@@ -102,10 +102,17 @@ func ReadEventGC(r *MlpdReader, base *Event) (EventData, error) {
 			heapSize: r.readULEB128(),
 		}, nil
 	case TypeGCEvent:
-		return &EventGCEvent{
-			eventType:  r.readByte(),
-			generation: r.readByte(),
-		}, nil
+		if r.DataVersion() > 12 {
+			return &EventGCEvent{
+				eventType:  r.readByte(),
+				generation: r.readByte(),
+			}, nil
+		} else {
+			return &EventGCEvent{
+				eventType:  byte(r.readULEB128()),
+				generation: byte(r.readULEB128()),
+			}, nil
+		}
 	case TypeGCMove:
 		numObjects := r.readULEB128()
 		objAddrs := make([]int64, numObjects)

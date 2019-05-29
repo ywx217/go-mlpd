@@ -87,7 +87,11 @@ func (r *MlpdReader) readInt16() int16 {
 }
 
 func (r *MlpdReader) readUint16() uint16 {
-	return binary.LittleEndian.Uint16(r.readBytes(2))
+	bs := r.readBytes(2)
+	if bs == nil || len(bs) != 2 {
+		return 0
+	}
+	return binary.LittleEndian.Uint16(bs)
 }
 
 func (r *MlpdReader) readInt32() int32 {
@@ -95,7 +99,11 @@ func (r *MlpdReader) readInt32() int32 {
 }
 
 func (r *MlpdReader) readUint32() uint32 {
-	return binary.LittleEndian.Uint32(r.readBytes(4))
+	bs := r.readBytes(4)
+	if bs == nil || len(bs) != 4 {
+		return 0
+	}
+	return binary.LittleEndian.Uint32(bs)
 }
 
 func (r *MlpdReader) readInt64() int64 {
@@ -103,7 +111,11 @@ func (r *MlpdReader) readInt64() int64 {
 }
 
 func (r *MlpdReader) readUint64() uint64 {
-	return binary.LittleEndian.Uint64(r.readBytes(8))
+	bs := r.readBytes(8)
+	if bs == nil || len(bs) != 8 {
+		return 0
+	}
+	return binary.LittleEndian.Uint64(bs)
 }
 
 func (r *MlpdReader) readSizedString() string {
@@ -120,7 +132,7 @@ func (r *MlpdReader) readCString() string {
 	if err != nil {
 		return ""
 	}
-	return string(b)
+	return string(b[:len(b)-1])
 }
 
 func (r *MlpdReader) readTimeInMillis() time.Time {
@@ -193,6 +205,15 @@ func (r *MlpdReader) ReadHeader() (*Header, error) {
 	return header, nil
 }
 
+// DataVersion reads data version of the mlpd file
+func (r *MlpdReader) DataVersion() byte {
+	header, err := r.ReadHeader()
+	if err != nil {
+		return 0
+	}
+	return header.format
+}
+
 // ReadBufferHeader reads buffer header of mlpd file
 func (r *MlpdReader) ReadBufferHeader() (*BufferHeader, error) {
 	headerID := r.readInt32()
@@ -214,12 +235,16 @@ func (r *MlpdReader) ReadBufferHeader() (*BufferHeader, error) {
 // ReadBuffer reads buffer header of mlpd file
 func (r *MlpdReader) ReadBuffer(iter EventIter) error {
 	for {
+		if _, err := r.data.Peek(4); err != nil {
+			return nil
+		}
 		bufferHeader, err := r.ReadBufferHeader()
 		if err != nil {
 			return err
 		}
 		bodyLength := int(bufferHeader.length)
 		body := r.readBytes(bodyLength)
+		fmt.Println("HEADER>>>", bufferHeader.timeBase)
 		if len(body) != bodyLength {
 			return errors.New("insufficient buffer to read")
 		}
@@ -230,6 +255,9 @@ func (r *MlpdReader) ReadBuffer(iter EventIter) error {
 			ev, err = ReadEvent(r)
 			if err != nil {
 				break
+			}
+			if ev == nil {
+				continue
 			}
 			err = iter(bufferHeader, ev)
 			if err != nil {

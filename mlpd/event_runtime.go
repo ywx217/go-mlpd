@@ -1,6 +1,8 @@
 package mlpd
 
-import "errors"
+import (
+	"errors"
+)
 
 // EventRuntime runtime event
 type EventRuntime struct {
@@ -30,8 +32,30 @@ func ReadEventRuntime(r *MlpdReader, base *Event) (*EventRuntime, error) {
 		bufferAddress: r.readLEB128(),
 		bufferSize:    r.readULEB128(),
 	}
-	if ev.tp == MonoProfilerCodeBufferSpecificTrampoline {
+	switch ev.tp {
+	case MonoProfilerCodeBufferSpecificTrampoline:
 		ev.name = r.readCString()
+	case MonoProfilerCodeBufferMethod:
+		ev.name = "method"
+	case MonoProfilerCodeBufferMethodTrampoline:
+		ev.name = "method trampoline"
+	case MonoProfilerCodeBufferUnboxTrampoline:
+		ev.name = "unbox trampoline"
+	case MonoProfilerCodeBufferImtTrampoline:
+		ev.name = "imt trampoline"
+	case MonoProfilerCodeBufferGenericsTrampoline:
+		ev.name = "generics trampoline"
+	case MonoProfilerCodeBufferHelper:
+		ev.name = r.readCString()
+	case MonoProfilerCodeBufferMonitor:
+		ev.name = "monitor/lock"
+	case MonoProfilerCodeBufferDelegateInvoke:
+		ev.name = "delegate invoke"
+	case MonoProfilerCodeBufferExceptionHandling:
+		ev.name = "exception handling"
+	default:
+		ev.name = "unspecified"
+		// return nil, fmt.Errorf("Unexpected type(%v) for EventRuntime", ev.tp)
 	}
 	return ev, nil
 }

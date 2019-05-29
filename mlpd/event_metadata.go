@@ -1,5 +1,7 @@
 package mlpd
 
+import "fmt"
+
 // EventMetadata metadata event
 type EventMetadata struct {
 	// mType metadata type, one of: TYPE_CLASS, TYPE_IMAGE, TYPE_ASSEMBLY, TYPE_DOMAIN, TYPE_THREAD, TYPE_CONTEXT, TYPE_VTABLE
@@ -32,22 +34,55 @@ func ReadEventMetadata(r *MlpdReader, base *Event) (*EventMetadata, error) {
 	if exInfo != TypeEndLoad && exInfo != TypeEndUnload && exInfo != 0 {
 		return nil, makeExInfoError("metadata", exInfo)
 	}
+	mt := r.readByte()
 	ev := &EventMetadata{
-		mType:   r.readByte(),
+		mType:   mt,
 		pointer: r.readLEB128(),
 	}
-	mt := ev.mType
-	if mt == MetadataTypeClass || mt == MetadataTypeAssembly {
+	ver := r.DataVersion()
+	switch mt {
+	case MetadataTypeClass:
 		ev.image = r.readLEB128()
-	}
-	if mt == MetadataTypeClass || mt == MetadataTypeImage || mt == MetadataTypeAssembly || (mt == MetadataTypeDomain && exInfo == 0) || (mt == MetadataTypeThread && exInfo == 0) {
+		if ver < 13 {
+			r.readULEB128()
+		}
 		ev.name = r.readCString()
-	}
-	if mt == MetadataTypeContext || mt == MetadataTypeVtable {
+	case MetadataTypeImage:
+		if ver < 13 {
+			r.readULEB128()
+		}
+		ev.name = r.readCString()
+	case MetadataTypeAssembly:
+		if ver > 13 {
+			ev.image = r.readLEB128()
+		} else if ver < 13 {
+			r.readULEB128()
+		}
+		ev.name = r.readCString()
+	case MetadataTypeDomain:
+		if ver < 13 {
+			r.readULEB128()
+		}
+		if exInfo == 0 {
+			ev.name = r.readCString()
+		}
+	case MetadataTypeContext:
+		if ver < 13 {
+			r.readULEB128()
+		}
 		ev.domain = r.readLEB128()
-	}
-	if mt == MetadataTypeVtable {
+	case MetadataTypeThread:
+		if ver < 13 {
+			r.readULEB128()
+		}
+		if exInfo == 0 {
+			ev.name = r.readCString()
+		}
+	case MetadataTypeVtable:
+		ev.domain = r.readLEB128()
 		ev.class = r.readLEB128()
+	default:
+		return nil, fmt.Errorf("invalid mtype(%v) for metadata event", mt)
 	}
 	return ev, nil
 }

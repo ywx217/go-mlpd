@@ -2,6 +2,7 @@ package mlpd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"testing"
 )
@@ -28,7 +29,7 @@ func TestMlpdReader_ReadHeader(t *testing.T) {
 	// buffers that appear later in the file are guaranteed to contain events
 	// that happened later in time.
 	err = r.ReadBuffer(func(bh *BufferHeader, ev *Event) error {
-		t.Logf("Read event data=%v %+v", ev.data.Name(), ev.data)
+		fmt.Printf("Read event data=%v %+v\n", ev.data.Name(), ev.data)
 		return nil
 	})
 	if err != nil {

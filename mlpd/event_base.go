@@ -51,6 +51,8 @@ func ReadEvent(r *MlpdReader) (*Event, error) {
 		data, err = ReadEventSample(r, ev)
 	case TypeCoverage:
 		data, err = ReadEventCoverage(r, ev)
+	case TypeMeta:
+		data, err = ReadEventMeta(r, ev)
 	default:
 		return nil, fmt.Errorf("Unsupported event type %v", tp)
 	}
