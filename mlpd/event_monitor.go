@@ -2,7 +2,6 @@ package mlpd
 
 // EventMonitor alloc event
 type EventMonitor struct {
-	base *EventBase
 	// tp MonoProfilerMonitorEvent enum value
 	tp MonoProfilerMonitorEvent
 	// object the lock object as a difference from obj_base
@@ -11,15 +10,14 @@ type EventMonitor struct {
 	bt *Backtrace
 }
 
-// IsEventMonitor find out if its an EventMonitor
-func IsEventMonitor(base *EventBase) bool {
-	return base.Type() == TypeMonitor
+// Name name of the event
+func (ev *EventMonitor) Name() string {
+	return "EventMonitor"
 }
 
 // ReadEventMonitor reads EventMonitor from reader
-func ReadEventMonitor(r *MlpdReader, base *EventBase) (*EventMonitor, error) {
+func ReadEventMonitor(r *MlpdReader, base *Event) (*EventMonitor, error) {
 	ev := &EventMonitor{
-		base:   base,
 		tp:     MonoProfilerMonitorEvent(r.readByte()),
 		object: r.readLEB128(),
 	}

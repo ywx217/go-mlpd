@@ -6,7 +6,6 @@ import (
 
 // EventSample alloc event
 type EventSample struct {
-	base *EventBase
 	// if exinfo == TYPE_SAMPLE_HIT
 	// 	[thread: sleb128] thread id as difference from ptr_base
 	thread int64
@@ -56,7 +55,7 @@ type EventSample struct {
 	// 				[value: string] counter value
 	// 		else:
 	// 			[value: uleb128/sleb128/double] counter value, can be sleb128, uleb128 or double (determined by using type)
-	counters []SampleCounter
+	values []interface{}
 }
 
 // SampleCounterDesc sample counter section
@@ -70,25 +69,15 @@ type SampleCounterDesc struct {
 	index       uint64
 }
 
-// SampleCounter sample counter info
-type SampleCounter struct {
-	strValue    *string
-	intValue    *int64
-	uintValue   *uint64
-	doubleValue *float64
-}
-
-// IsEventSample find out if its an EventSample
-func IsEventSample(base *EventBase) bool {
-	return base.Type() == TypeSample
+// Name name of the event
+func (ev *EventSample) Name() string {
+	return "EventSample"
 }
 
 // ReadEventSample reads EventSample from reader
-func ReadEventSample(r *MlpdReader, base *EventBase) (*EventSample, error) {
+func ReadEventSample(r *MlpdReader, base *Event) (*EventSample, error) {
 	exInfo := base.ExtendedInfo()
-	ev := &EventSample{
-		base: base,
-	}
+	ev := &EventSample{}
 
 	if exInfo == TypeSampleHit {
 		ev.thread = r.readLEB128()
@@ -134,14 +123,13 @@ func ReadEventSample(r *MlpdReader, base *EventBase) (*EventSample, error) {
 		}
 		ev.sections = desc
 	case TypeSampleCounters:
-		counters := make([]SampleCounter, 0)
+		values := make([]interface{}, 0)
 		for {
 			index := r.readULEB128()
 			if index == 0 {
 				break
 			}
 			tp := r.readULEB128()
-			counter := &SampleCounter{}
 			switch tp {
 			case MonoCounterString:
 				firstByte := r.readByte()
@@ -149,22 +137,21 @@ func ReadEventSample(r *MlpdReader, base *EventBase) (*EventSample, error) {
 				if firstByte != 0 {
 					value = r.readCString()
 				}
-				counter.strValue = &value
+				values = append(values, &value)
 			case MonoCounterInt, MonoCounterWord, MonoCounterLong:
 				value := r.readLEB128()
-				counter.intValue = &value
+				values = append(values, &value)
 			case MonoCounterUint, MonoCounterUlong:
 				value := r.readULEB128()
-				counter.uintValue = &value
+				values = append(values, &value)
 			case MonoCounterDouble:
 				value := r.readFloat64()
-				counter.doubleValue = &value
+				values = append(values, &value)
 			default:
 				return nil, fmt.Errorf("invalid type for sample counter: %v", tp)
 			}
-			counters = append(counters, *counter)
 		}
-		ev.counters = counters
+		ev.values = values
 	}
 
 	return ev, nil

@@ -2,7 +2,6 @@ package mlpd
 
 // EventException exception event
 type EventException struct {
-	base *EventBase
 	// object the exception object as a difference from obj_base
 	object int64
 	// If exinfo == TYPE_THROW_BT, a backtrace follows.
@@ -11,7 +10,6 @@ type EventException struct {
 
 // EventExceptionClause exception event if exinfo == TYPE_CLAUSE
 type EventExceptionClause struct {
-	base *EventBase
 	// clauseType MonoExceptionEnum enum value
 	clauseType byte
 	// clauseIndex index of the current clause
@@ -22,25 +20,29 @@ type EventExceptionClause struct {
 	object int64
 }
 
-// IsEventException find out if its an EventException
-func IsEventException(base *EventBase) bool {
-	return base.Type() == TypeException
+// Name name of the event
+func (ev *EventException) Name() string {
+	return "EventException"
+}
+
+// Name name of the event
+func (ev *EventExceptionClause) Name() string {
+	return "EventExceptionClause"
 }
 
 // ReadEventException reads EventException from reader
-func ReadEventException(r *MlpdReader, base *EventBase) (interface{}, error) {
+func ReadEventException(r *MlpdReader, base *Event) (EventData, error) {
 	exInfo := base.ExtendedInfo()
 	if exInfo == TypeClause {
 		return &EventExceptionClause{
-			base:        base,
 			clauseType:  r.readByte(),
 			clauseIndex: r.readULEB128(),
 			method:      r.readLEB128(),
 			object:      r.readLEB128(),
 		}, nil
-	} else {
+	}
+	if exInfo == TypeThrowBT || exInfo == TypeThrowNoBT {
 		ev := &EventException{
-			base:   base,
 			object: r.readLEB128(),
 		}
 		if exInfo == TypeThrowBT {
@@ -52,4 +54,5 @@ func ReadEventException(r *MlpdReader, base *EventBase) (interface{}, error) {
 		}
 		return ev, nil
 	}
+	return nil, makeExInfoError("exception", exInfo)
 }

@@ -2,8 +2,11 @@ package mlpd
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"time"
 
@@ -64,7 +67,7 @@ type BufferHeader struct {
 
 func (r *MlpdReader) readBytes(size int) []byte {
 	b := make([]byte, size)
-	n, err := r.data.Read(b)
+	n, err := io.ReadFull(r.data, b)
 	if err != nil {
 		return nil
 	}
@@ -186,14 +189,12 @@ func (r *MlpdReader) ReadHeader() (*Header, error) {
 		arch:          r.readSizedString(),
 		os:            r.readSizedString(),
 	}
+	r.header = header
 	return header, nil
 }
 
 // ReadBufferHeader reads buffer header of mlpd file
 func (r *MlpdReader) ReadBufferHeader() (*BufferHeader, error) {
-	if _, err := r.ReadHeader(); err != nil {
-		return nil, err
-	}
 	headerID := r.readInt32()
 	if headerID != BufID {
 		return nil, fmt.Errorf("Invalid buffer header id: 0x%x", headerID)
@@ -208,4 +209,41 @@ func (r *MlpdReader) ReadBufferHeader() (*BufferHeader, error) {
 		methodBase: r.readUint64(),
 	}
 	return bh, nil
+}
+
+// ReadBuffer reads buffer header of mlpd file
+func (r *MlpdReader) ReadBuffer(iter EventIter) error {
+	for {
+		bufferHeader, err := r.ReadBufferHeader()
+		if err != nil {
+			return err
+		}
+		bodyLength := int(bufferHeader.length)
+		body := r.readBytes(bodyLength)
+		if len(body) != bodyLength {
+			return errors.New("insufficient buffer to read")
+		}
+		originalData := r.data
+		r.data = bufio.NewReader(bytes.NewBuffer(body))
+		var ev *Event
+		for {
+			ev, err = ReadEvent(r)
+			if err != nil {
+				break
+			}
+			err = iter(bufferHeader, ev)
+			if err != nil {
+				break
+			}
+		}
+		r.data = originalData
+		switch err.(type) {
+		case *StopEventIterError:
+			return nil
+		case *EventEOFError:
+			continue
+		default:
+			return err
+		}
+	}
 }

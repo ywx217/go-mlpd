@@ -24,7 +24,7 @@ const (
 
 /* extended type for TYPE_HEAP */
 const (
-	TypeHeapStart = (iota + 1) << 4
+	TypeHeapStart = iota + 1
 	TypeHeapEnd
 	TypeHeapObject
 	TypeHeapRoot
@@ -34,13 +34,13 @@ const (
 
 /* extended type for TYPE_METADATA */
 const (
-	TypeEndLoad   = 2 << 4
-	TypeEndUnload = 4 << 4
+	TypeEndLoad   = 2
+	TypeEndUnload = 4
 )
 
 /* extended type for TYPE_GC */
 const (
-	TypeGCEvent = (iota + 1) << 4
+	TypeGCEvent = iota + 1
 	TypeGCResize
 	TypeGCMove
 	TypeGCHandleCreated
@@ -55,7 +55,7 @@ const (
 
 /* extended type for TYPE_METHOD */
 const (
-	TypeLeave = (iota + 1) << 4
+	TypeLeave = iota + 1
 	TypeEnter
 	TypeExcLeave
 	TypeJIT
@@ -63,26 +63,26 @@ const (
 
 /* extended type for TYPE_EXCEPTION */
 const (
-	TypeThrowNoBT = 0 << 7
-	TypeThrowBT   = 1 << 7
-	TypeClause    = 1 << 4
+	TypeThrowNoBT = 0 << 3
+	TypeThrowBT   = 1 << 3
+	TypeClause    = 1
 )
 
 /* extended type for TYPE_ALLOC */
 const (
-	TypeAllocNoBT = iota << 4
+	TypeAllocNoBT = iota
 	TypeAllocBT
 )
 
 /* extended type for TYPE_MONITOR */
 const (
-	TypeMonitorNoBT = iota << 7
+	TypeMonitorNoBT = iota << 3
 	TypeMonitorBT
 )
 
 /* extended type for TYPE_SAMPLE */
 const (
-	TypeSampleHit = iota << 4
+	TypeSampleHit = iota
 	TypeSampleUsym
 	TypeSampleUbin
 	TypeSampleCountersDesc
@@ -91,12 +91,12 @@ const (
 
 /* extended type for TYPE_RUNTIME */
 const (
-	TypeJITHelper = 1 << 4
+	TypeJITHelper = 1
 )
 
 /* extended type for TYPE_COVERAGE */
 const (
-	TypeCoverageAssembly = iota << 4
+	TypeCoverageAssembly = iota
 	TypeCoverageMethod
 	TypeCoverageStatement
 	TypeCoverageClass
@@ -104,7 +104,7 @@ const (
 
 /* extended type for TYPE_META */
 const (
-	TypeSyncPoint = 0 << 4
+	TypeSyncPoint = 0
 )
 
 /* metadata type byte for TYPE_METADATA */
@@ -222,4 +222,14 @@ const (
 	MonoCounterMonotonic     = 1 << (iota + 28) /* This counter value always increase/decreases over time. Reported by --stat. */
 	MonoCounterConstant                         /* Fixed value. Used by configuration data. */
 	MonoCounterVariable                         /* This counter value can be anything on each sampling. Only interesting when sampling. */
+)
+
+// MonoProfilerSyncPointType enum
+type MonoProfilerSyncPointType byte
+
+// enum values of MonoProfilerSyncPointType
+const (
+	SyncPointPeriodic MonoProfilerSyncPointType = iota
+	SyncPointWorldStop
+	SyncPointWorldStart
 )

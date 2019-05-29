@@ -4,7 +4,6 @@ import "errors"
 
 // EventCoverage coverage event
 type EventCoverage struct {
-	base *EventBase
 	// type coverage format
 	// type: TYPE_COVERAGE
 	// exinfo: one of TYPE_COVERAGE_METHOD, TYPE_COVERAGE_STATEMENT, TYPE_COVERAGE_ASSEMBLY, TYPE_COVERAGE_CLASS
@@ -42,12 +41,12 @@ type EventCoverage struct {
 	//    number of methods that are fully and partially covered.
 }
 
-// IsEventCoverage find out if its an EventCoverage
-func IsEventCoverage(base *EventBase) bool {
-	return base.Type() == TypeCoverage
+// Name name of the event
+func (ev *EventCoverage) Name() string {
+	return "EventCoverage"
 }
 
 // ReadEventCoverage reads EventCoverage from reader
-func ReadEventCoverage(r *MlpdReader, base *EventBase) (*EventCoverage, error) {
+func ReadEventCoverage(r *MlpdReader, base *Event) (*EventCoverage, error) {
 	return nil, errors.New("not implemented")
 }

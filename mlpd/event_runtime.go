@@ -4,7 +4,6 @@ import "errors"
 
 // EventRuntime runtime event
 type EventRuntime struct {
-	base *EventBase
 	// tp MonoProfilerCodeBufferType enum value
 	tp MonoProfilerCodeBufferType
 	// bufferAddress pointer to the native code as a diff from ptr_base
@@ -15,13 +14,13 @@ type EventRuntime struct {
 	name string
 }
 
-// IsEventRuntime find out if its an EventRuntime
-func IsEventRuntime(base *EventBase) bool {
-	return base.Type() == TypeRuntime
+// Name name of the event
+func (ev *EventRuntime) Name() string {
+	return "EventRuntime"
 }
 
 // ReadEventRuntime reads EventRuntime from reader
-func ReadEventRuntime(r *MlpdReader, base *EventBase) (*EventRuntime, error) {
+func ReadEventRuntime(r *MlpdReader, base *Event) (*EventRuntime, error) {
 	exInfo := base.ExtendedInfo()
 	if exInfo != TypeJITHelper {
 		return nil, errors.New("Unexpected exinfo for EventRuntime")

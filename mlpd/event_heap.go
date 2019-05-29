@@ -4,7 +4,6 @@ import "errors"
 
 // EventHeapObject heap event if exinfo == TYPE_HEAP_OBJECT
 type EventHeapObject struct {
-	base *EventBase
 	// [object: sleb128] the object as a difference from obj_base
 	object int64
 	// [vtable: sleb128] MonoVTable* as a pointer difference from ptr_base
@@ -25,7 +24,6 @@ type EventHeapObject struct {
 
 // EventHeapRoot heap event if exinfo == TYPE_HEAP_ROOT
 type EventHeapRoot struct {
-	base *EventBase
 	// 	[numRoots: uleb128] number of root references
 	numRoots uint64
 	// 	for i = 0 to num_roots
@@ -37,7 +35,6 @@ type EventHeapRoot struct {
 
 // EventHeapRootRegister heap event if exinfo == TYPE_HEAP_ROOT_REGISTER
 type EventHeapRootRegister struct {
-	base *EventBase
 	// [start: sleb128] start address as a difference from ptr_base
 	start int64
 	// [size: uleb] size of the root region
@@ -52,23 +49,36 @@ type EventHeapRootRegister struct {
 
 // EventHeapRootUnregister heap event if exinfo == TYPE_HEAP_ROOT_UNREGISTER
 type EventHeapRootUnregister struct {
-	base *EventBase
 	// [start: sleb128] start address as a difference from ptr_base
 	start int64
 }
 
-// IsEventHeap find out if its an EventHeap
-func IsEventHeap(base *EventBase) bool {
-	return base.Type() == TypeHeap
+// Name name of the event
+func (ev *EventHeapObject) Name() string {
+	return "EventHeapObject"
+}
+
+// Name name of the event
+func (ev *EventHeapRoot) Name() string {
+	return "EventHeapRoot"
+}
+
+// Name name of the event
+func (ev *EventHeapRootRegister) Name() string {
+	return "EventHeapRootRegister"
+}
+
+// Name name of the event
+func (ev *EventHeapRootUnregister) Name() string {
+	return "EventHeapRootUnregister"
 }
 
 // ReadEventHeap reads EventHeap from reader
-func ReadEventHeap(r *MlpdReader, base *EventBase) (interface{}, error) {
+func ReadEventHeap(r *MlpdReader, base *Event) (EventData, error) {
 	exInfo := base.ExtendedInfo()
 	switch exInfo {
 	case TypeHeapObject:
 		ev := &EventHeapObject{
-			base:    base,
 			object:  r.readLEB128(),
 			vtable:  r.readLEB128(),
 			size:    r.readULEB128(),
@@ -90,14 +100,12 @@ func ReadEventHeap(r *MlpdReader, base *EventBase) (interface{}, error) {
 			object[i] = r.readLEB128()
 		}
 		return &EventHeapRoot{
-			base:     base,
 			numRoots: numRoots,
 			address:  address,
 			object:   object,
 		}, nil
 	case TypeHeapRootRegister:
 		return &EventHeapRootRegister{
-			base:   base,
 			start:  r.readLEB128(),
 			size:   r.readULEB128(),
 			source: MonoGCRootSource(r.readByte()),
@@ -106,7 +114,6 @@ func ReadEventHeap(r *MlpdReader, base *EventBase) (interface{}, error) {
 		}, nil
 	case TypeHeapRootUnregister:
 		return &EventHeapRootUnregister{
-			base:  base,
 			start: r.readLEB128(),
 		}, nil
 	}

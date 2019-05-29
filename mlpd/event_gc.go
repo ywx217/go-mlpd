@@ -1,10 +1,7 @@
 package mlpd
 
-import "errors"
-
 // EventGCResize if exinfo == TYPE_GC_RESIZE
 type EventGCResize struct {
-	base *EventBase
 	// heapSize new heap size
 	heapSize uint64
 }
@@ -61,13 +58,43 @@ type EventGCFinalizeObjectEnd struct {
 	object int64
 }
 
-// IsEventGC find out if its an EventGC
-func IsEventGC(base *EventBase) bool {
-	return base.Type() == TypeGC
+// Name name of the event
+func (ev *EventGCResize) Name() string {
+	return "EventGCResize"
+}
+
+// Name name of the event
+func (ev *EventGCEvent) Name() string {
+	return "EventGCEvent"
+}
+
+// Name name of the event
+func (ev *EventGCMove) Name() string {
+	return "EventGCMove"
+}
+
+// Name name of the event
+func (ev *EventGCHandleCreated) Name() string {
+	return "EventGCHandleCreated"
+}
+
+// Name name of the event
+func (ev *EventGCHandleDestroyed) Name() string {
+	return "EventGCHandleDestroyed"
+}
+
+// Name name of the event
+func (ev *EventGCFinalizeObjectStart) Name() string {
+	return "EventGCFinalizeObjectStart"
+}
+
+// Name name of the event
+func (ev *EventGCFinalizeObjectEnd) Name() string {
+	return "EventGCFinalizeObjectEnd"
 }
 
 // ReadEventGC reads EventGC from reader
-func ReadEventGC(r *MlpdReader, base *EventBase) (interface{}, error) {
+func ReadEventGC(r *MlpdReader, base *Event) (EventData, error) {
 	extInfo := base.ExtendedInfo()
 	switch extInfo {
 	case TypeGCResize:
@@ -124,5 +151,5 @@ func ReadEventGC(r *MlpdReader, base *EventBase) (interface{}, error) {
 			object: r.readLEB128(),
 		}, nil
 	}
-	return nil, errors.New("unsupported ext-info")
+	return nil, makeExInfoError("gc", extInfo)
 }

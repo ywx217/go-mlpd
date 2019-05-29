@@ -2,7 +2,6 @@ package mlpd
 
 // EventAlloc alloc event
 type EventAlloc struct {
-	base *EventBase
 	// vtable MonoVTable* as a pointer difference from ptr_base
 	vtable int64
 	// obj object address as a byte difference from obj_base
@@ -13,25 +12,28 @@ type EventAlloc struct {
 	bt *Backtrace
 }
 
-// IsEventAlloc find out if its an EventAlloc
-func IsEventAlloc(base *EventBase) bool {
-	return base.Type() == TypeAlloc
+// Name name of the event
+func (ev *EventAlloc) Name() string {
+	return "EventAlloc"
 }
 
 // ReadEventAlloc reads EventAlloc from reader
-func ReadEventAlloc(r *MlpdReader, base *EventBase) (*EventAlloc, error) {
+func ReadEventAlloc(r *MlpdReader, base *Event) (*EventAlloc, error) {
 	ev := &EventAlloc{
-		base:   base,
 		vtable: r.readLEB128(),
 		obj:    r.readLEB128(),
 		size:   r.readULEB128(),
 	}
-	if base.ExtendedInfo() == TypeAllocBT {
+	exInfo := base.ExtendedInfo()
+	if exInfo == TypeAllocBT {
 		bt, err := ReadBacktrace(r)
 		if err != nil {
 			return ev, err
 		}
 		ev.bt = bt
 	}
-	return ev, nil
+	if exInfo == TypeAllocNoBT {
+		return ev, nil
+	}
+	return nil, makeExInfoError("alloc", exInfo)
 }
