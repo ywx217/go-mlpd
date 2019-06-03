@@ -75,7 +75,7 @@ func TestMlpdReader_ReadSamples(t *testing.T) {
 		}
 		fmt.Printf("thread-0x%x\n", d.threadID)
 		return nil
-	}))
+	}, true))
 	if err != nil {
 		t.Error(err)
 		return

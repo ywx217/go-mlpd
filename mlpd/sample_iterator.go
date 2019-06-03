@@ -15,7 +15,7 @@ type SampleData struct {
 type SampleIter func(d *SampleData) error
 
 // MakeEventIterFromSampleIter makes an EventIter from a given SampleIter
-func MakeEventIterFromSampleIter(it SampleIter) EventIter {
+func MakeEventIterFromSampleIter(it SampleIter, showAllNative bool) EventIter {
 	var lastHeader *BufferHeader
 	var timeBase time.Time
 	var methodBase, ptrBase int64
@@ -52,19 +52,22 @@ func MakeEventIterFromSampleIter(it SampleIter) EventIter {
 				} else {
 					tid = threadID
 				}
+				if !showAllNative && (d.method == nil || len(d.method) == 0) {
+					return nil
+				}
 				methods := make([]*MethodNode, 0)
 				for _, ip := range d.ip {
+					ip += ptrBase
 					if node := methodTable.LookupByIP(ip); node != nil {
 						methods = append(methods, node)
 					} else if node := unmanagedSymbols.Lookup(ip); node != nil {
 						methods = append(methods, node)
-					} else {
-						methods = append(methods, nil)
 					}
 				}
 				if d.method != nil {
-					for _, methodID := range d.method {
-						methods = append(methods, methodTable.Lookup(methodID))
+					for _, ptrDiff := range d.method {
+						methodBase += ptrDiff
+						methods = append(methods, methodTable.Lookup(methodBase))
 					}
 				}
 				err := it(&SampleData{
