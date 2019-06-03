@@ -76,6 +76,7 @@ func (ev *EventHeapRootUnregister) Name() string {
 // ReadEventHeap reads EventHeap from reader
 func ReadEventHeap(r *MlpdReader, base *Event) (EventData, error) {
 	exInfo := base.ExtendedInfo()
+	ver := r.DataVersion()
 	switch exInfo {
 	case TypeHeapObject:
 		ev := &EventHeapObject{
@@ -93,11 +94,24 @@ func ReadEventHeap(r *MlpdReader, base *Event) (EventData, error) {
 		return ev, nil
 	case TypeHeapRoot:
 		numRoots := r.readULEB128()
+		if ver <= 14 {
+			r.readULEB128()
+		}
 		address := make([]int64, numRoots)
 		object := make([]int64, numRoots)
 		for i := uint64(0); i < numRoots; i++ {
-			address[i] = r.readLEB128()
-			object[i] = r.readLEB128()
+			if ver > 14 {
+				address[i] = r.readLEB128()
+				object[i] = r.readLEB128()
+			} else {
+				object[i] = r.readLEB128()
+				if ver == 13 {
+					r.readByte()
+				} else {
+					r.readULEB128()
+				}
+				r.readULEB128()
+			}
 		}
 		return &EventHeapRoot{
 			numRoots: numRoots,
