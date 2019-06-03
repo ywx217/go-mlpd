@@ -24,7 +24,7 @@ const (
 
 /* extended type for TYPE_HEAP */
 const (
-	TypeHeapStart = iota + 1
+	TypeHeapStart = iota
 	TypeHeapEnd
 	TypeHeapObject
 	TypeHeapRoot
