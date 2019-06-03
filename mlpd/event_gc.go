@@ -107,12 +107,11 @@ func ReadEventGC(r *MlpdReader, base *Event) (EventData, error) {
 				eventType:  r.readByte(),
 				generation: r.readByte(),
 			}, nil
-		} else {
-			return &EventGCEvent{
-				eventType:  byte(r.readULEB128()),
-				generation: byte(r.readULEB128()),
-			}, nil
 		}
+		return &EventGCEvent{
+			eventType:  byte(r.readULEB128()),
+			generation: byte(r.readULEB128()),
+		}, nil
 	case TypeGCMove:
 		numObjects := r.readULEB128()
 		objAddrs := make([]int64, numObjects)

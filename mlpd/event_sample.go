@@ -78,22 +78,27 @@ func (ev *EventSample) Name() string {
 func ReadEventSample(r *MlpdReader, base *Event) (*EventSample, error) {
 	exInfo := base.ExtendedInfo()
 	ev := &EventSample{}
+	ver := r.DataVersion()
 
 	switch exInfo {
 	case TypeSampleHit:
-		ev.thread = r.readLEB128()
+		if ver > 10 {
+			ev.thread = r.readLEB128()
+		}
 		count := r.readULEB128()
 		ip := make([]int64, count)
 		for i := uint64(0); i < count; i++ {
 			ip[i] = r.readLEB128()
 		}
 		ev.ip = ip
-		methodCount := r.readULEB128()
-		method := make([]int64, methodCount)
-		for i := uint64(0); i < methodCount; i++ {
-			method[i] = r.readLEB128()
+		if ver > 5 {
+			methodCount := r.readULEB128()
+			method := make([]int64, methodCount)
+			for i := uint64(0); i < methodCount; i++ {
+				method[i] = r.readLEB128()
+			}
+			ev.method = method
 		}
-		ev.method = method
 	case TypeSampleUsym:
 		ev.address = r.readLEB128()
 		ev.size = r.readULEB128()

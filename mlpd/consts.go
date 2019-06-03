@@ -181,8 +181,8 @@ const (
 	MonoRootSourceHandle
 )
 
+/* Counter type, bits 0-7. */
 const (
-	/* Counter type, bits 0-7. */
 	MonoCounterInt   = iota /* 32 bit int */
 	MonoCounterUint         /* 32 bit uint */
 	MonoCounterWord         /* pointer-sized int */

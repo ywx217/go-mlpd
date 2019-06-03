@@ -234,6 +234,7 @@ func (r *MlpdReader) ReadBufferHeader() (*BufferHeader, error) {
 
 // ReadBuffer reads buffer header of mlpd file
 func (r *MlpdReader) ReadBuffer(iter EventIter) error {
+	ver := r.DataVersion()
 	for {
 		if _, err := r.data.Peek(4); err != nil {
 			return nil
@@ -259,7 +260,7 @@ func (r *MlpdReader) ReadBuffer(iter EventIter) error {
 			if ev == nil {
 				continue
 			}
-			err = iter(bufferHeader, ev)
+			err = iter(bufferHeader, ev, ver)
 			if err != nil {
 				break
 			}

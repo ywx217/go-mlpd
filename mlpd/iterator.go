@@ -1,7 +1,7 @@
 package mlpd
 
 // EventIter iterate function for reading events
-type EventIter func(*BufferHeader, *Event) error
+type EventIter func(*BufferHeader, *Event, byte) error
 
 // StopEventIterError stops iteration error
 type StopEventIterError struct{}
