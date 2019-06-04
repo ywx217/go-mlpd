@@ -65,6 +65,14 @@ type BufferHeader struct {
 	methodBase uint64
 }
 
+// NewReader returns a new MlpdReader
+func NewReader(r *bufio.Reader) *MlpdReader {
+	return &MlpdReader{
+		data:   r,
+		header: nil,
+	}
+}
+
 func (r *MlpdReader) readBytes(size int) []byte {
 	b := make([]byte, size)
 	n, err := io.ReadFull(r.data, b)

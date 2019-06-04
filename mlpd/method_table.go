@@ -7,6 +7,11 @@ type MethodNode struct {
 	name   string
 }
 
+// Name returns name of the node
+func (node *MethodNode) Name() string {
+	return node.name
+}
+
 // MethodTable high effeciency method lookup table
 type MethodTable struct {
 	methodMap map[int64]*MethodNode

@@ -74,6 +74,7 @@ func TestMlpdReader_ReadSamples(t *testing.T) {
 			}
 		}
 		fmt.Printf("thread-0x%x\n", d.threadID)
+		fmt.Printf("-- end of sample\n\n")
 		return nil
 	}, true))
 	if err != nil {

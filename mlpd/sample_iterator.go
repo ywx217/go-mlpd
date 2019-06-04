@@ -83,3 +83,18 @@ func MakeEventIterFromSampleIter(it SampleIter, showAllNative bool) EventIter {
 		return nil
 	}
 }
+
+// Time returns time of the sample
+func (d *SampleData) Time() time.Time {
+	return d.time
+}
+
+// ThreadID returns thread id of the sample
+func (d *SampleData) ThreadID() uint64 {
+	return d.threadID
+}
+
+// Methods returns method list of the sample
+func (d *SampleData) Methods() []*MethodNode {
+	return d.methods
+}
