@@ -253,7 +253,6 @@ func (r *MlpdReader) ReadBuffer(iter EventIter) error {
 		}
 		bodyLength := int(bufferHeader.length)
 		body := r.readBytes(bodyLength)
-		fmt.Println("HEADER>>>", bufferHeader.timeBase)
 		if len(body) != bodyLength {
 			return errors.New("insufficient buffer to read")
 		}
