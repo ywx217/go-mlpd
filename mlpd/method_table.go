@@ -15,12 +15,14 @@ func (node *MethodNode) Name() string {
 // MethodTable high effeciency method lookup table
 type MethodTable struct {
 	methodMap map[int64]*MethodNode
+	ipTree    *MethodTree
 }
 
 // NewMethodTable creates an empty MethodTable
 func NewMethodTable() *MethodTable {
 	return &MethodTable{
 		methodMap: make(map[int64]*MethodNode, 0),
+		ipTree:    NewMethodTree(),
 	}
 }
 
@@ -31,6 +33,7 @@ func (mt *MethodTable) Add(methodID, codeAddress int64, codeSize uint64, name st
 		length: codeSize,
 		name:   name,
 	}
+	mt.ipTree.Add(codeAddress, codeSize, name)
 }
 
 // Lookup looks up a method from the table
@@ -43,10 +46,12 @@ func (mt *MethodTable) Lookup(methodID int64) *MethodNode {
 
 // LookupByIP looks up a method by instruction pointer
 func (mt *MethodTable) LookupByIP(ip int64) *MethodNode {
-	for _, v := range mt.methodMap {
-		if ip >= v.code && ip < v.code+int64(v.length) {
-			return v
-		}
+	node := mt.ipTree.Lookup(ip)
+	if node == nil {
+		return nil
+	}
+	if ip >= node.code && ip < node.code+int64(node.length) {
+		return node
 	}
 	return nil
 }
