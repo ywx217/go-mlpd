@@ -54,3 +54,28 @@ func (r *Record) FixRootValue() *Record {
 	}
 	return r
 }
+
+// ValueStatisticInplace count on each node's value in the given node value -> node count map
+func (r *Record) ValueStatisticInplace(m map[int]int) *Record {
+	m[r.value]++
+	for _, child := range r.children {
+		child.ValueStatisticInplace(m)
+	}
+	return r
+}
+
+// CutoffInplace cuts off entries less than threshold in-place
+func (r *Record) CutoffInplace(threshold int) *Record {
+	cutNames := make([]string, 0)
+	for name, child := range r.children {
+		if child.value < threshold {
+			cutNames = append(cutNames, name)
+		} else {
+			child.CutoffInplace(threshold)
+		}
+	}
+	for _, name := range cutNames {
+		delete(r.children, name)
+	}
+	return r
+}
