@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+
+	"gopkg.in/cheggaaa/pb.v1"
 
 	"github.com/ianlancetaylor/demangle"
 
@@ -39,6 +42,7 @@ func outputFlame(r *mlpd.MlpdReader) error {
 	if err != nil {
 		return err
 	}
+	// start parsing flame data
 	record := flamewriter.NewRecord("root", 0)
 	stack := make([]string, 0, 100)
 	err = r.ReadBuffer(mlpd.MakeEventIterFromSampleIter(func(d *mlpd.SampleData) error {
@@ -78,23 +82,38 @@ func outputTimeline(r *mlpd.MlpdReader) error {
 	return nil
 }
 
+func makeProgressReader(path string) (*os.File, *mlpd.MlpdReader, *pb.ProgressBar, error) {
+	fInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	bar := pb.New64(fInfo.Size()).SetUnits(pb.U_BYTES)
+	bar.ShowSpeed = true
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return f, mlpd.NewReader(bufio.NewReader(io.TeeReader(f, bar))), bar, nil
+}
+
 func main() {
 	flag.StringVar(&inputPath, "i", "output.mlpd", "input file path in mlpd format")
 	flag.StringVar(&outputPath, "o", "output.html", "output file path in html formatj")
 	flag.StringVar(&outputType, "t", "flame", "output type, supported: flame, timeline")
-	flag.BoolVar(&includeNative, "n", false, "includes native only stacks")
-	flag.BoolVar(&splitThreads, "s", false, "split thread as different root nodes")
+	flag.BoolVar(&includeNative, "show-natives", false, "includes native only stacks")
+	flag.BoolVar(&splitThreads, "split-threads", false, "split thread as different root nodes")
 	flag.BoolVar(&skipIdle, "skip-idle", false, "skips idle symbols")
 	flag.Parse()
 
-	f, err := os.Open(inputPath)
+	f, r, bar, err := makeProgressReader(inputPath)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
 
-	r := mlpd.NewReader(bufio.NewReader(f))
 	if outputType == "flame" {
+		bar.Start()
+		defer bar.Finish()
 		err = outputFlame(r)
 	} else if outputType == "timeline" {
 		err = outputTimeline(r)
